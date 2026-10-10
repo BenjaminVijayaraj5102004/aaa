@@ -1,0 +1,60 @@
+# Git repositories and metadata
+.git
+.gitignore
+.gitattributes
+
+# Worktrees and subagents
+.worktrees
+.agents
+
+# Virtual environments
+.venv
+venv
+env
+ENV
+
+# Python bytecode and caches
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache
+.coverage
+htmlcov
+
+# Local secrets, credentials, and session caches
+.env
+.env.*
+!.env.example
+.vtop_credentials.json
+.vtop_session.json
+.vtop_sessions
+**/.vtop_sessions
+
+# Audio files and recordings
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.m4a
+
+# Editor and IDE configurations
+.idea
+.vscode
+.cursor
+
+# Build artifacts
+build
+dist
+wheels
+*.egg-info
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+compose.yaml
+.dockerignore
+
+# Temporary files and logs
+*.log
+scratch/
