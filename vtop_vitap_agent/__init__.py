@@ -17,12 +17,17 @@ try:
         WindsurfVoiceInputService,
     )
 except ImportError:
-    pass
+    VoiceInputResult = None  # type: ignore
+    VoiceInputService = None  # type: ignore
+    WindsurfVoiceInputService = None  # type: ignore
 
 __all__ = [
     "VtopVoiceAgent",
     "query_vtop_agent",
     "query_vtop_agent_sync",
+    "VoiceInputService",
+    "WindsurfVoiceInputService",
+    "VoiceInputResult",
     "VoiceOutputService",
     "WindsurfVoiceOutputService",
     "VoiceOutputResult",
@@ -32,3 +37,4 @@ __all__ = [
     "SUPPORTED_LANGUAGES",
     "DEFAULT_SAMPLE_RATE",
 ]
+
