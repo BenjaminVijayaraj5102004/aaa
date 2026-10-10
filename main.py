@@ -15,6 +15,24 @@ from vtop_vitap_agent.workflow import VtopVoiceWorkflow, handle_dummy_phone_call
 logger = logging.getLogger("jev_bot")
 
 
+def get_application():
+    """Dynamically loads and returns the FastAPI application instance from cli-bot/login.py."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "cli_bot_login", PROJECT_ROOT / "cli-bot" / "login.py"
+    )
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Failed to load cli-bot/login.py from {PROJECT_ROOT / 'cli-bot' / 'login.py'}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.app
+
+
+# ASGI application instance for standard Uvicorn commands (e.g. `uvicorn main:app`)
+app = get_application()
+
+
 def run_doctor() -> int:
     """Checks the health and availability of all project modules and dependencies."""
     print("\n=== JEV VTOP Bot Diagnostic Check ===")
@@ -31,15 +49,9 @@ def run_doctor() -> int:
 
     # 2. Check cli-bot
     try:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("cli_bot_login", PROJECT_ROOT / "cli-bot" / "login.py")
-        if spec and spec.loader:
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            print("[OK] cli-bot: FastAPI service initialized successfully")
-        else:
-            print("[FAIL] cli-bot: could not load module spec")
-            status_all_ok = False
+        fastapi_app = get_application()
+        route_count = len(fastapi_app.routes)
+        print(f"[OK] cli-bot: FastAPI service initialized successfully ({route_count} routes registered)")
     except Exception as e:
         print(f"[FAIL] cli-bot: {e}")
         status_all_ok = False
@@ -63,6 +75,21 @@ def run_doctor() -> int:
         print(f"[FAIL] vtop_vitap_agent: {e}")
         status_all_ok = False
 
+    # 5. Check nginx configuration
+    try:
+        nginx_conf = PROJECT_ROOT / "nginx" / "nginx.conf"
+        if nginx_conf.exists():
+            content = nginx_conf.read_text(encoding="utf-8")
+            if "proxy_pass" in content and "8000" in content:
+                print(f"[OK] nginx: Reverse proxy configuration verified at {nginx_conf.relative_to(PROJECT_ROOT)}")
+            else:
+                print(f"[WARN] nginx: {nginx_conf.name} present but missing backend proxy directives")
+        else:
+            print("[WARN] nginx: nginx/nginx.conf not found")
+    except Exception as e:
+        print(f"[FAIL] nginx: {e}")
+        status_all_ok = False
+
     print("=======================================")
     if status_all_ok:
         print("Result: All project components are healthy.\n")
@@ -72,17 +99,56 @@ def run_doctor() -> int:
         return 1
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
-    """Runs the FastAPI cli-bot server."""
-    import uvicorn
-    import importlib.util
+def start_uvicorn(
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    reload: bool = False,
+    workers: int = 1,
+    log_level: str = "info",
+    app_target: object = None,
+) -> None:
+    """
+    Starts the Uvicorn ASGI server with configurable runtime parameters.
 
-    spec = importlib.util.spec_from_file_location("cli_bot_login", PROJECT_ROOT / "cli-bot" / "login.py")
-    if not spec or not spec.loader:
-        raise RuntimeError("Failed to load cli-bot/login.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    uvicorn.run(mod.app, host=host, port=port)
+    Args:
+        host: Interface binding address (default '0.0.0.0').
+        port: Listening port number (default 8000).
+        reload: Enable auto-reload on code change (default False).
+        workers: Number of worker processes (default 1).
+        log_level: Logging verbosity level (default 'info').
+        app_target: FastAPI application instance or ASGI import string.
+    """
+    import uvicorn
+
+    target = app_target or get_application()
+    logger.info(
+        f"Starting Uvicorn server on {host}:{port} (workers={workers}, reload={reload}, log_level={log_level})"
+    )
+    uvicorn.run(
+        target,
+        host=host,
+        port=port,
+        reload=reload,
+        workers=workers,
+        log_level=log_level,
+    )
+
+
+def run_server(
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    reload: bool = False,
+    workers: int = 1,
+    log_level: str = "info",
+) -> None:
+    """Runs the FastAPI cli-bot server using the Uvicorn startup method."""
+    start_uvicorn(
+        host=host,
+        port=port,
+        reload=reload,
+        workers=workers,
+        log_level=log_level,
+    )
 
 
 def run_mcp() -> None:
@@ -134,9 +200,37 @@ def main() -> None:
     subparsers.add_parser("doctor", help="Run health and configuration diagnostics")
 
     # server
-    server_parser = subparsers.add_parser("server", help="Start the FastAPI CLI-bot authentication server")
-    server_parser.add_argument("--host", default="127.0.0.1", help="Host address (default: 127.0.0.1)")
-    server_parser.add_argument("--port", type=int, default=8000, help="Port (default: 8000)")
+    server_parser = subparsers.add_parser(
+        "server", help="Start the FastAPI CLI-bot authentication server with Uvicorn"
+    )
+    server_parser.add_argument(
+        "--host",
+        default=os.getenv("HOST", "0.0.0.0"),
+        help="Host address (default: 0.0.0.0 or $HOST)",
+    )
+    server_parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.getenv("PORT", "8000")),
+        help="Port (default: 8000 or $PORT)",
+    )
+    server_parser.add_argument(
+        "--reload",
+        action="store_true",
+        help="Enable auto-reload for development",
+    )
+    server_parser.add_argument(
+        "--workers",
+        type=int,
+        default=int(os.getenv("WORKERS", "1")),
+        help="Number of worker processes (default: 1)",
+    )
+    server_parser.add_argument(
+        "--log-level",
+        default=os.getenv("LOG_LEVEL", "info"),
+        choices=["critical", "error", "warning", "info", "debug", "trace"],
+        help="Uvicorn log verbosity level (default: info)",
+    )
 
     # mcp
     subparsers.add_parser("mcp", help="Start the VTOP MCP server via stdio")
@@ -157,7 +251,13 @@ def main() -> None:
     if args.command == "doctor":
         sys.exit(run_doctor())
     elif args.command == "server":
-        run_server(host=args.host, port=args.port)
+        run_server(
+            host=args.host,
+            port=args.port,
+            reload=args.reload,
+            workers=args.workers,
+            log_level=args.log_level,
+        )
     elif args.command == "mcp":
         run_mcp()
     elif args.command == "call":

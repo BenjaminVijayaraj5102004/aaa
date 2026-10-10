@@ -117,3 +117,28 @@ async def get_or_create_session(user: UserInfo):
             status_code=500,
             detail=f"An unexpected error occurred during login: {e}",
         )
+
+
+def start_uvicorn(
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    reload: bool = False,
+    workers: int = 1,
+    log_level: str = "info",
+) -> None:
+    """Starts the FastAPI cli-bot server using Uvicorn."""
+    import uvicorn
+
+    uvicorn.run(
+        "login:app" if __name__ == "__main__" else app,
+        host=host,
+        port=port,
+        reload=reload,
+        workers=workers,
+        log_level=log_level,
+    )
+
+
+if __name__ == "__main__":
+    start_uvicorn()
+

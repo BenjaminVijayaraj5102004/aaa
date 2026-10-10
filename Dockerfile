@@ -40,6 +40,7 @@ COPY vtop_vitap_agent/ ./vtop_vitap_agent/
 COPY vtop_mcp_tool/ ./vtop_mcp_tool/
 COPY vtop_vitap_login/ ./vtop_vitap_login/
 COPY cli-bot/ ./cli-bot/
+COPY nginx/ ./nginx/
 
 # Install the project packages
 RUN uv sync --frozen --no-dev
@@ -47,5 +48,5 @@ RUN uv sync --frozen --no-dev
 # Expose port for optional FastAPI/web endpoints
 EXPOSE 8000
 
-# Default command runs the main voice assistant demo runner
-CMD ["python", "main.py"]
+# Default command runs the Uvicorn FastAPI server on port 8000
+CMD ["python", "main.py", "server", "--host", "0.0.0.0", "--port", "8000"]
