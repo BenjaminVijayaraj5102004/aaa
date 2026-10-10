@@ -1,0 +1,41 @@
+[project]
+name = "jev-bot-for-vtop"
+version = "0.1.0"
+description = "VTOP Bot for VIT-AP"
+readme = "README.md"
+requires-python = ">=3.13.3"
+dependencies = [
+    "fastapi[standard]>=0.142.1",
+    "ffmpeg>=1.4",
+    "kokoro>=0.3.4",
+    "langchain>=1.4.2",
+    "langchain-mcp-adapters>=0.3.1",
+    "langchain-ollama>=1.1.0",
+    "langchain-typesafe[experimental]>=0.0.1a3",
+    "mcp[cli]<2",
+    "misaki[en]>=0.9.4",
+    "openai-whisper>=20250625",
+    "pyaudio>=0.2.14",
+    "requests>=2.34.2",
+    "richie>=3.5.1",
+    "soundfile>=0.14.0",
+    "typer>=0.27.2",
+    "vitap-vtop-client",
+    "whisper>=1.1.10",
+]
+
+[tool.uv.sources]
+vitap-vtop-client = { git = "https://github.com/Udhay-Adithya/vitap-vtop-client.git", branch = "main" }
+
+[tool.pyright]
+include = ["vtop_mcp_tool", "vtop_vitap_agent", "vtop_vitap_login", "main.py"]
+extraPaths = ["."]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vtop_mcp_tool*", "vtop_vitap_agent*", "vtop_vitap_login*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+

@@ -1,0 +1,11 @@
+import sys
+from pathlib import Path
+
+# Ensure workspace root is in sys.path
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from vtop_mcp_tool.vtop_mcp import mcp
+
+__all__ = ["mcp"]

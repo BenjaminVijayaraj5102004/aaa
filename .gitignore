@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.coverage
+.pytest_cache/
+
+# Virtual environments
+.venv
+
+# Local credentials and cached sessions
+.env
+.vtop_session.json
+.vtop_credentials.json
+.vtop_sessions/
+cli-bot/.vtop_sessions/
+
+# Generated media and worktrees
+*.mp3
+*.wav
+.worktrees/
+
+
