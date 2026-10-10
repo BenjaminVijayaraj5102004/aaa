@@ -62,11 +62,13 @@ class VoiceInputService:
         ollama_model: str = "llama3.1:8b",
         temperature: float = 0.7,
         system_prompt: Optional[str] = None,
+        use_mcp: bool = True,
     ):
         self.device = device
         self.whisper_model_name = whisper_model_name
         self.ollama_model_name = ollama_model
         self.temperature = temperature
+        self.use_mcp = use_mcp
 
         self._whisper_model: Optional[whisper.Whisper] = None
         self._llm: Optional[ChatOllama] = None
@@ -204,11 +206,25 @@ class VoiceInputService:
         context_metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
-        Transfers the transcribed query to the LLM (ChatOllama) and generates a spoken response.
+        Transfers the transcribed query to the LLM (VtopVoiceAgent or ChatOllama) and generates a spoken response.
         Ensures the response matches the user's preferred natural language.
         """
         if not query_text:
             return "No voice input detected. Please speak again."
+
+        # Delegate to VTOP MCP Agent if enabled
+        if self.use_mcp:
+            try:
+                from vtop_vitap_agent.llm import query_vtop_agent_sync
+
+                logger.info(f"Delegating transcribed query to VtopVoiceAgent (with MCP tools)...")
+                agent_reply = query_vtop_agent_sync(query_text, language=user_language)
+                if agent_reply and agent_reply.strip():
+                    return agent_reply.strip()
+            except Exception as e:
+                logger.warning(
+                    f"VtopVoiceAgent delegation failed ({e}), falling back to direct ChatOllama..."
+                )
 
         lang_instruction = ""
         if user_language:
