@@ -39,3 +39,9 @@ include = ["vtop_mcp_tool*", "vtop_vitap_agent*", "vtop_vitap_login*"]
 pythonpath = ["."]
 testpaths = ["tests"]
 
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+

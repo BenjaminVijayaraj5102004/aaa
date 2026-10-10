@@ -90,6 +90,17 @@ def run_doctor() -> int:
         print(f"[FAIL] nginx: {e}")
         status_all_ok = False
 
+    # 6. Check GitHub Actions workflow
+    try:
+        ci_workflow = PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
+        if ci_workflow.exists():
+            print(f"[OK] github_actions: CI workflow verified at {ci_workflow.relative_to(PROJECT_ROOT)}")
+        else:
+            print("[WARN] github_actions: .github/workflows/ci.yml not found")
+    except Exception as e:
+        print(f"[FAIL] github_actions: {e}")
+        status_all_ok = False
+
     print("=======================================")
     if status_all_ok:
         print("Result: All project components are healthy.\n")

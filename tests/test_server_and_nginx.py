@@ -122,3 +122,32 @@ class TestDockerComposeNginxService:
 
     def test_docker_compose_app_uvicorn_command(self, compose_content):
         assert "command: [\"python\", \"main.py\", \"server\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]" in compose_content
+
+
+class TestGitHubActionsWorkflow:
+    @pytest.fixture
+    def ci_workflow(self):
+        workflow_path = PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
+        assert workflow_path.exists(), f"GitHub Actions workflow not found at {workflow_path}"
+        return workflow_path.read_text(encoding="utf-8")
+
+    def test_workflow_triggers(self, ci_workflow):
+        assert "push:" in ci_workflow
+        assert "pull_request:" in ci_workflow
+        assert "workflow_dispatch:" in ci_workflow
+
+    def test_workflow_jobs_defined(self, ci_workflow):
+        assert "test:" in ci_workflow
+        assert "docker:" in ci_workflow
+        assert "runs-on: ubuntu-latest" in ci_workflow
+
+    def test_workflow_test_steps(self, ci_workflow):
+        assert "uv sync --frozen" in ci_workflow
+        assert "uv run python main.py doctor" in ci_workflow
+        assert "uv run pytest -v" in ci_workflow
+
+    def test_workflow_docker_steps(self, ci_workflow):
+        assert "docker compose config" in ci_workflow
+        assert "nginx -t" in ci_workflow
+        assert "docker build" in ci_workflow
+
